@@ -14,6 +14,7 @@ import Step3Review from "./Step3Review";
 import Step4Result from "./Step4Result";
 import Step5Download from "./Step5Download";
 import SummaryPanel from "./SummaryPanel";
+import WorkBackupButtons from "./WorkBackupButtons";
 
 export default function Workspace() {
   const { state, update, reset } = useWorkState();
@@ -47,6 +48,7 @@ export default function Workspace() {
       <header className="flex items-center justify-between border-b border-zinc-200 py-5">
         <h1 className="text-2xl font-bold tracking-tight">적립금 배분 툴</h1>
         <div className="flex gap-2">
+          <WorkBackupButtons state={state} update={update} onMessage={setMessage} />
           <button
             type="button"
             onClick={onReset}
