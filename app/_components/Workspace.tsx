@@ -12,6 +12,7 @@ import Step1Conditions from "./Step1Conditions";
 import Step2Upload from "./Step2Upload";
 import Step3Review from "./Step3Review";
 import Step4Result from "./Step4Result";
+import SummaryPanel from "./SummaryPanel";
 
 export default function Workspace() {
   const { state, update, reset } = useWorkState();
@@ -110,7 +111,11 @@ export default function Workspace() {
           ) : current === 3 ? (
             <Step3Review state={state} update={update} />
           ) : current === 4 ? (
-            <Step4Result state={state} update={update} />
+            <Step4Result
+              state={state}
+              update={update}
+              summary={state.result && <SummaryPanel result={state.result} choice={state.selectedMove} />}
+            />
           ) : (
             <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
           )}
