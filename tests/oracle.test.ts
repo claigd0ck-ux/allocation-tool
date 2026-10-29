@@ -105,9 +105,8 @@ describe("정답의 이동 방법이 모든 규칙을 지킨다 (예시 3건 + �
   }
 });
 
-// 아래는 계산 코드(PLAN 6~7번)를 만들 때 하나씩 채운다. 만들면 oracleAnswer와 같은지 비교한다.
-// (작업 3 순위: tests/calc/rank.test.ts, 작업 4 목표 금액: tests/calc/allocate.test.ts, 작업 5 수수료: tests/calc/fee.test.ts)
+// 아래는 계산 코드(PLAN 7번)를 만들 때 채운다. 만들면 oracleAnswer와 같은지 비교한다.
+// (작업 3 순위: tests/calc/rank.test.ts, 4 목표 금액: allocate.test.ts, 5 수수료: fee.test.ts, 6 상품 배분: products.test.ts)
 describe("계산 코드 vs 정답 (구현 예정)", () => {
-  it.todo("작업 6 상품별 배분: 상품별 금액과 기관·전체 수익률이 정답과 같다");
   it.todo("작업 7 자금 이동: 최소 횟수·최소 금액안의 횟수·금액·최종 금액이 정답과 같고 규칙을 지킨다");
 });

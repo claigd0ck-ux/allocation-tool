@@ -26,6 +26,10 @@ export interface OracleAnswer {
     products: { name: string; maturity: "1y" | "3y"; amount: Eok; yieldMilli: Milli | null }[];
   }[];
   totalYieldMilli: Milli;
+  /** 전체 수수료 차감 수익 (억 원 × 0.001%) */
+  totalNet: number;
+  /** 전체 수익이 최대인 상품 배분 조합의 개수 (1이면 상품별 금액까지 정답이 하나로 정해진다) */
+  productOptimumWays: number;
   minCount: OracleMove;
   minAmount: OracleMove;
   /** 두 이동 방법의 기관별 최종 금액이 같은지 (안내 문구 표시 조건) */
@@ -44,6 +48,8 @@ interface OracleRawMove {
 interface OracleRaw {
   T: number;
   totalYield: number;
+  totalNet: number;
+  productOptimumWays: number;
   nodes: { name: string }[];
   alloc: {
     inst: { name: string };
@@ -84,6 +90,8 @@ export function oracleAnswer(c: RawCase): OracleAnswer {
       })),
     })),
     totalYieldMilli: r.totalYield,
+    totalNet: r.totalNet,
+    productOptimumWays: r.productOptimumWays,
     minCount,
     minAmount,
     same: names.every((n) => minCount.finalAmounts[n] === minAmount.finalAmounts[n]),
