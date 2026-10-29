@@ -1,26 +1,23 @@
 @import "tailwindcss";
 
+/* PC 화면 전용 업무 도구 — 밝은 화면 하나로 고정한다 */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* 한글이 잘 보이는 시스템 글꼴 (외부 글꼴을 내려받지 않는다) */
+  --font-sans: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  /* 금액·비율 숫자의 자릿수를 맞춘다 */
+  font-variant-numeric: tabular-nums;
+  min-width: 1024px;
 }
