@@ -31,6 +31,9 @@ export type CalcResult =
       targets: TargetAllocation[];
       /** 두 방법의 결과가 같으면 안내 문구, 아니면 null */
       notice: string | null;
+      /** 허용 오차 폭과 실제로 적용한 기관 (근거 요약·안내용) */
+      tolerance: Eok;
+      toleranceTargets: string[];
     }
   | { ok: false; errors: CalcError[] };
 
@@ -60,6 +63,10 @@ export function calculatePlan(institutions: readonly Institution[], conditions: 
     amount3y: products.amount3y,
     targets: targets.allocations,
     notice: moves.same ? SAME_RESULT_NOTICE : null,
+    tolerance: conditions.tolerance,
+    toleranceTargets: targets.allocations
+      .filter((a) => !a.excluded && (!conditions.toleranceTargets || conditions.toleranceTargets.includes(a.institution.name)))
+      .map((a) => a.institution.name),
   };
 }
 

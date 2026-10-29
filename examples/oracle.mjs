@@ -154,7 +154,9 @@ function solve(c) {
   });
 
   // 5) 자금 이동 — 기관별 최종 금액 F는 목표 ± 허용 오차, 합계 = 전체 적립금
-  const nodes = alloc.map((a) => ({ name: a.inst.name, existing: a.inst.existing, target: a.target, tol: a.excluded ? 0 : c.tolerance }));
+  // 허용 오차는 toleranceTargets의 기관에만 (없으면 모든 기관 — 예시 자료). 제외 기관은 0억 고정.
+  const tolOf = (a) => (a.excluded ? 0 : !c.toleranceTargets || c.toleranceTargets.includes(a.inst.name) ? c.tolerance : 0);
+  const nodes = alloc.map((a) => ({ name: a.inst.name, existing: a.inst.existing, target: a.target, tol: tolOf(a) }));
   const plans = [];
   const F = new Array(nodes.length);
   // 순위 순서 규칙: 평가가 더 낮은(순위가 더 뒤인) 기관이 더 높은 기관보다 많이 받으면 안 된다. 같은 순위끼리는 비교하지 않는다.

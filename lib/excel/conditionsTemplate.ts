@@ -74,12 +74,14 @@ export async function buildConditionsTemplate(draft?: ConditionsDraft): Promise<
   ws.getCell(`D${TABLE_START_ROW - 2}`).value = "순위별 배분비율 (합계 100%, 순위순으로 같거나 작게)";
   ws.getCell(`A${TABLE_START_ROW - 2}`).font = { bold: true };
   ws.getCell(`D${TABLE_START_ROW - 2}`).font = { bold: true };
-  header(TABLE_START_ROW - 1, ["기관명", "한도(%)"]);
+  header(TABLE_START_ROW - 1, ["기관명", "한도(%)", "허용오차(O)"]);
   header(TABLE_START_ROW - 1, ["순위", "배분비율(%)"], 4);
+  ws.getCell(`F${TABLE_START_ROW - 1}`).value = "허용 오차는 O 표시한 기관(최대 2곳)에만 적용";
   for (let i = 0; i < MAX_INSTITUTIONS; i++) {
     const r = TABLE_START_ROW + i;
     input(`A${r}`, draft?.limits[i]?.name, false);
     input(`B${r}`, draft?.limits[i]?.limitPct);
+    input(`C${r}`, draft?.limits[i]?.tolerance ? "O" : "", false);
     ws.getCell(`D${r}`).value = `${i + 1}위`;
     input(`E${r}`, draft?.rankRatios[i]);
   }
@@ -114,7 +116,8 @@ export async function parseConditionsTemplate(data: ArrayBuffer | Uint8Array): P
     const r = TABLE_START_ROW + i;
     const name = text(ws.getCell(`A${r}`).value);
     const limitPct = text(ws.getCell(`B${r}`).value);
-    if (name || limitPct) limits.push({ name, limitPct });
+    const tolerance = /^(o|○|●|v|✓|✔|y|yes|예|적용)$/i.test(text(ws.getCell(`C${r}`).value));
+    if (name || limitPct) limits.push({ name, limitPct, ...(tolerance ? { tolerance: true } : {}) });
     const ratio = text(ws.getCell(`E${r}`).value);
     if (ratio) rankRatios.push(ratio);
   }

@@ -35,7 +35,7 @@ describe("기초 조건 엑셀 양식", () => {
     const parsed = await parseConditionsTemplate(await buildConditionsTemplate(example1));
     expect(parsed).toEqual({ ok: true, draft: example1 });
     const check = checkConditions(example1);
-    expect(check.ok && check.conditions).toEqual(exampleCases[0].conditions);
+    expect(check.ok && check.conditions).toEqual({ ...exampleCases[0].conditions, toleranceTargets: [] });
   });
 
   it("실무자가 엑셀에서 직접 채운 값(숫자·글자·쉼표)도 읽는다", async () => {

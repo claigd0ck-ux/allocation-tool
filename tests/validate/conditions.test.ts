@@ -51,7 +51,8 @@ describe("기초 조건 검사", () => {
     const r = checkConditions(example1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.conditions).toEqual(exampleCases[0].conditions);
+    // 화면 입력은 허용 오차 적용 기관을 명시한다 (아무것도 고르지 않음 = 빈 목록)
+    expect(r.conditions).toEqual({ ...exampleCases[0].conditions, toleranceTargets: [] });
     const plan = calculatePlan(exampleCases[0].institutions, r.conditions);
     expect(plan.ok && plan.plan.totalYieldMilli).toBe(3411);
   });

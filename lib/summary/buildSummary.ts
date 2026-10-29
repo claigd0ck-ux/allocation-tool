@@ -89,6 +89,9 @@ export function buildSummary(r: CalcSuccess, choice: MoveChoice): SummarySection
     title: "5. 자금 이동 방법",
     lines: [
       `${MOVE_LABEL[choice]} 기준을 선택했습니다: 송금 ${plan.count}회, 이동 금액 ${formatEok(plan.amount)}.`,
+      r.toleranceTargets.length > 0 && r.tolerance > 0
+        ? `허용 오차 ±${r.tolerance}억은 ${r.toleranceTargets.join("·")}에만 적용했고, 나머지 기관은 목표 금액 그대로 옮겼습니다.`
+        : "허용 오차를 적용한 기관이 없어 모든 기관을 목표 금액 그대로 옮겼습니다.",
       ...plan.transfers.map((t) => `${t.from} → ${t.to} ${formatEok(t.amount)}`),
       ...(deviations.length > 0
         ? [

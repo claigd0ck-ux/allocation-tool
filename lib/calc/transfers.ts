@@ -53,7 +53,7 @@ interface Candidate {
  */
 export function planMoves(
   targets: readonly TargetAllocation[],
-  conditions: Pick<Conditions, "newDeposit" | "tolerance">,
+  conditions: Pick<Conditions, "newDeposit" | "tolerance" | "toleranceTargets">,
 ): MoveResult {
   const { newDeposit, tolerance } = conditions;
   const errors: MoveError[] = [];
@@ -70,9 +70,11 @@ export function planMoves(
   const goal = targets.map((t) => t.target);
   const ranks = targets.map((t) => t.rank);
   const total = existing.reduce((s, e) => s + e, 0) + newDeposit;
-  // 제외 기관(9곳 이상일 때 하위 2곳)은 허용 오차 없이 반드시 0억 — 잔액을 전액 옮긴다
-  const low = targets.map((t) => (t.excluded ? 0 : Math.max(0, t.target - tolerance)));
-  const high = targets.map((t) => (t.excluded ? 0 : t.target + tolerance));
+  // 허용 오차는 고른 기관에만 (나머지는 최종 금액 = 목표). 제외 기관(9곳 이상일 때 하위 2곳)은 반드시 0억 — 잔액 전액 이동
+  const tolOf = (t: TargetAllocation) =>
+    t.excluded ? 0 : !conditions.toleranceTargets || conditions.toleranceTargets.includes(t.institution.name) ? tolerance : 0;
+  const low = targets.map((t) => (t.excluded ? 0 : Math.max(0, t.target - tolOf(t))));
+  const high = targets.map((t) => (t.excluded ? 0 : t.target + tolOf(t)));
 
   // 마지막으로 정하는 기관의 금액은 합계로 정해지므로, 따질 경우의 수는 나머지 기관 범위의 곱
   const candidates = low.slice(0, -1).reduce((p, l, i) => p * (high[i] - l + 1), 1);

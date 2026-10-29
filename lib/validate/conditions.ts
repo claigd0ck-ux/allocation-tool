@@ -2,6 +2,7 @@
 // Plan SC: 작업 11 (기초 조건 입력 화면). 통과하면 계산용 Conditions로 바꾼다.
 
 import { includedCount } from "@/lib/calc/exclusion";
+import { MAX_TOLERANCE_TARGETS } from "@/lib/calc/toleranceAdvice";
 import type { Conditions } from "@/lib/domain/types";
 import type { ConditionsDraft } from "@/lib/storage/workState";
 import { parseEok, parsePct, sumPct } from "./numbers";
@@ -27,6 +28,7 @@ export interface AmountChoice {
  * - 순위별 배분비율: 기관 수만큼, 합계 100%, 순위순으로 같거나 작아짐
  * - 만기 구성 비율: 1년물 + 3년물 = 100%
  * - 전체 × 3년물 비율이 억 원 정수가 아니면 3년물 금액 필수
+ * - 허용 오차를 적용할 기관은 최대 2곳
  */
 export function checkConditions(draft: ConditionsDraft): ConditionsCheck {
   const errors: Record<FieldKey, string> = {};
@@ -54,6 +56,12 @@ export function checkConditions(draft: ConditionsDraft): ConditionsCheck {
   if (limits.length > 0 && limitValues.every((v) => v !== null)) {
     const sum = sumPct(limitValues as number[]);
     if (sum !== 100) errors.limits = `한도 합계가 100%가 아닙니다 (지금 ${sum}%).`;
+  }
+
+  // 허용 오차 적용 기관: 담당자가 최대 2곳 선택
+  const toleranceTargets = draft.limits.filter((row) => row.tolerance && row.name.trim()).map((row) => row.name.trim());
+  if (toleranceTargets.length > MAX_TOLERANCE_TARGETS) {
+    errors.toleranceTargets = `허용 오차는 ${MAX_TOLERANCE_TARGETS}곳까지만 적용할 수 있습니다 (지금 ${toleranceTargets.length}곳).`;
   }
 
   // 순위별 배분비율
@@ -108,6 +116,7 @@ export function checkConditions(draft: ConditionsDraft): ConditionsCheck {
       maturityMix: { "1y": mix1y!, "3y": mix3y! },
       ...(amount3y !== undefined ? { amount3y } : {}),
       tolerance: tolerance!,
+      toleranceTargets,
     },
   };
 }

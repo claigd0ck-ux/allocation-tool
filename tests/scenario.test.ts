@@ -15,6 +15,9 @@ import { emptyWorkState, type ConditionsDraft, type WorkState } from "@/lib/stor
 import { buildSummary, summaryText } from "@/lib/summary/buildSummary";
 import { checkConditions } from "@/lib/validate/conditions";
 import { recalculate } from "@/lib/workflow/recalc";
+import { adviseTolerance } from "@/lib/calc/toleranceAdvice";
+import { rawCases } from "./helpers/cases";
+import { oracleAnswer } from "./helpers/oracle";
 
 const pdf = (name: string) => new Uint8Array(readFileSync(join(__dirname, "../examples/pdf", name)));
 
@@ -117,7 +120,26 @@ describe("전체 시나리오 — 예시 1을 처음부터 끝까지", () => {
       ["D은행", 120, 3363],
     ]);
     expect(result.plan.totalYieldMilli).toBe(3411);
-    expect([result.plan.moves.minCount.count, result.plan.moves.minCount.amount]).toEqual([3, 270]);
+    // 허용 오차 기관을 고르지 않았으므로 모든 기관이 목표 금액 그대로 (정답 계산기와 같다)
+    const none = oracleAnswer({ ...rawCases[0], toleranceTargets: [] });
+    expect([result.plan.moves.minCount.count, result.plan.moves.minCount.amount]).toEqual([none.minCount.count, none.minCount.amount]);
+    expect(result.plan.moves.minCount.finalAmounts).toEqual({ A은행: 480, B증권: 360, C은행: 240, D은행: 120 });
+
+    // ④ 툴이 허용 오차를 줄 기관(최대 2곳)을 안내하고, 담당자가 그대로 고쳐 다시 계산한다
+    const advice = adviseTolerance(result.targets, { newDeposit: 200, tolerance: 10, toleranceTargets: [] });
+    expect(advice?.better).not.toBeNull();
+    const chosen = advice!.better!.names;
+    expect(chosen.length).toBeLessThanOrEqual(2);
+    calc.state.conditions.limits = calc.state.conditions.limits.map((l) => ({ ...l, tolerance: chosen.includes(l.name) }));
+    const advised = recalculate(calc.state);
+    expect(advised.ok).toBe(true);
+    if (!advised.ok || !advised.state.result) return;
+    const expected = oracleAnswer({ ...rawCases[0], toleranceTargets: chosen });
+    expect([advised.state.result.plan.moves.minCount.count, advised.state.result.plan.moves.minCount.amount]).toEqual([
+      expected.minCount.count,
+      expected.minCount.amount,
+    ]);
+    expect(advised.state.result.plan.moves.minCount.count).toBe(advice!.better!.count);
     // 성공 기준 ③: 한도 위반 0건 (억 원 미만 처리 초과 외에는 정확한 값이 한도 이내)
     for (const t of result.targets) expect(t.exact.num / t.exact.den).toBeLessThanOrEqual(t.limitExact);
 

@@ -57,8 +57,13 @@ export interface Conditions {
   maturityMix: { "1y": number; "3y": number };
   /** 전체 × 3년물 비율이 억 원 정수가 아닐 때 실무자가 정한 3년물 금액. */
   amount3y?: Eok;
-  /** 허용 오차 (억 원 정수, ±). 모든 기관에 같은 폭. */
+  /** 허용 오차 (억 원 정수, ±). 같은 폭을 toleranceTargets의 기관에만 적용한다. */
   tolerance: Eok;
+  /**
+   * 허용 오차를 적용할 기관 이름 (담당자가 최대 2곳 선택, 나머지는 최종 금액 = 목표 금액).
+   * 비어 있으면 아무 기관에도 적용하지 않는다. 없으면(undefined) 모든 기관에 적용 — examples/cases.json 예시용.
+   */
+  toleranceTargets?: string[];
 }
 
 // ───────── 인식 결과의 상태 표시 (화면 ③) ─────────

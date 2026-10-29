@@ -5,6 +5,7 @@
 
 import { useState, type ReactNode } from "react";
 import { includedCount } from "@/lib/calc/exclusion";
+import { MAX_TOLERANCE_TARGETS } from "@/lib/calc/toleranceAdvice";
 import type { ConditionsDraft, WorkState } from "@/lib/storage/workState";
 import { checkConditions } from "@/lib/validate/conditions";
 import { parsePct, sumPct } from "@/lib/validate/numbers";
@@ -47,6 +48,7 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
   const removeInstitution = (i: number) =>
     edit((d) => ({ ...d, limits: d.limits.filter((_, k) => k !== i), rankRatios: resizeRatios(d.rankRatios, d.limits.length - 1) }));
   const excludedCount = draft.limits.length - includedCount(draft.limits.length);
+  const toleranceCount = draft.limits.filter((l) => l.tolerance).length;
 
   const pctSum = (texts: string[]) => {
     if (texts.length === 0) return null;
@@ -73,6 +75,7 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
               <th className="w-12 py-2 font-medium">#</th>
               <th className="py-2 font-medium">기관명</th>
               <th className="w-40 py-2 font-medium">한도(%)</th>
+              <th className="w-28 py-2 font-medium">허용 오차 적용</th>
               <th className="w-16" />
             </tr>
           </thead>
@@ -87,6 +90,15 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
                 <td className="py-2 pr-3">
                   <TextInput label={`${i + 1}번 한도`} value={row.limitPct} numeric suffix="%" error={err[`limits.${i}.limitPct`]}
                     onChange={(v) => edit((d) => ({ ...d, limits: d.limits.map((l, k) => (k === i ? { ...l, limitPct: v } : l)) }))} />
+                </td>
+                <td className="py-2 pt-3.5">
+                  <input
+                    type="checkbox"
+                    aria-label={`${i + 1}번 기관에 허용 오차 적용`}
+                    checked={!!row.tolerance}
+                    disabled={!row.tolerance && toleranceCount >= MAX_TOLERANCE_TARGETS}
+                    onChange={(e) => edit((d) => ({ ...d, limits: d.limits.map((l, k) => (k === i ? { ...l, tolerance: e.target.checked } : l)) }))}
+                  />
                 </td>
                 <td className="py-2">
                   <button type="button" onClick={() => removeInstitution(i)} className="rounded px-2 py-1.5 text-zinc-500 hover:bg-zinc-100">
@@ -166,7 +178,12 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
 
       <Group title="허용 오차 (억 원, ±)">
         <NumberField label="허용 오차" unit="억" value={draft.tolerance} onChange={set("tolerance")} error={err.tolerance}
-          hint="자금 이동 때 기관별 목표 금액에서 벗어나도 되는 폭 (모든 기관에 같은 폭). 비우면 계산할 수 없습니다." />
+          hint="자금 이동 때 목표 금액에서 벗어나도 되는 폭. 위 표에서 [허용 오차 적용]을 고른 기관(최대 2곳)에만 적용됩니다." />
+        <p className="text-sm text-zinc-600">
+          허용 오차 적용 기관: {toleranceCount}/{MAX_TOLERANCE_TARGETS}곳
+          {toleranceCount === 0 && " — 고르지 않으면 모든 기관이 목표 금액 그대로 옮겨집니다. ④ 계산 결과에서 어느 기관에 주면 좋은지 안내합니다."}
+        </p>
+        <ErrorText text={err.toleranceTargets} />
       </Group>
 
       <p className={"text-sm " + (check.ok ? "text-emerald-700" : "text-zinc-500")}>

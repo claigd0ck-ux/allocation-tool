@@ -8,6 +8,7 @@ import { allocationRows, MOVE_LABEL, type CalcSuccess } from "@/lib/calc/view";
 import type { MovePlan } from "@/lib/domain/types";
 import { formatEok, formatMilli } from "@/lib/domain/units";
 import type { MoveChoice, WorkState } from "@/lib/storage/workState";
+import ToleranceAdvicePanel from "./ToleranceAdvicePanel";
 
 interface Props {
   state: WorkState;
@@ -82,6 +83,8 @@ export default function Step4Result({ state, update, summary }: Props) {
           ))}
         </div>
       </section>
+
+      <ToleranceAdvicePanel state={state} update={update} />
 
       {summary}
 

@@ -18,7 +18,8 @@ export type Step = 1 | 2 | 3 | 4 | 5;
 export interface ConditionsDraft {
   existingTotal: string;
   newDeposit: string;
-  limits: { name: string; limitPct: string }[];
+  /** tolerance: 이 기관에 허용 오차를 적용 (최대 2곳) */
+  limits: { name: string; limitPct: string; tolerance?: boolean }[];
   rankRatios: string[];
   mix1y: string;
   mix3y: string;

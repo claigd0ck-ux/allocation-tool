@@ -13,6 +13,8 @@ export interface RawCase {
   rankRatios: number[];
   maturityMix: { "1y": number; "3y": number };
   tolerance: number;
+  /** 허용 오차를 적용할 기관 (없으면 모든 기관) */
+  toleranceTargets?: string[];
   institutions: {
     name: string;
     score: number;
@@ -62,6 +64,7 @@ export function toCaseInput(c: RawCase): CaseInput {
       rankRatios: c.rankRatios,
       maturityMix: c.maturityMix,
       tolerance: c.tolerance,
+      ...(c.toleranceTargets ? { toleranceTargets: c.toleranceTargets } : {}),
     },
   };
 }
