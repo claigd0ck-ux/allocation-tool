@@ -26,13 +26,16 @@ export function randomCase(seed: number): RawCase {
   const int = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
   const n = int(3, 4);
 
-  // 순위별 배분비율: 내림차순 정수, 합계 100
-  const weights = Array.from({ length: n }, () => int(5, 40)).sort((x, y) => y - x);
-  const weightSum = weights.reduce((s, w) => s + w, 0);
-  const rankRatios = weights.map((w) => Math.floor((w * 100) / weightSum));
-  rankRatios[0] += 100 - rankRatios.reduce((s, r) => s + r, 0);
-
   const scorePool = [95, 90, 90, 85, 80, 80];
+  let scores = Array.from({ length: n }, () => scorePool[int(0, scorePool.length - 1)]);
+  let ratios = makeRatios(scores, int);
+  if (!ratios) {
+    // 예: 3곳이 모두 동점이면 100%를 정수 %로 똑같이 나눌 수 없다 → 점수를 모두 다르게 바꿔 다시 만든다
+    scores = [95, 90, 85, 80].slice(0, n);
+    ratios = makeRatios(scores, int)!;
+  }
+  const { rankRatios, shareByScore } = ratios;
+
   const institutions = Array.from({ length: n }, (_, i) => {
     const feeMethod = rand() < 0.5 ? ("whole" as const) : ("progressive" as const);
     const rate1 = 3.3 + int(0, 12) * 0.05;
@@ -50,9 +53,10 @@ export function randomCase(seed: number): RawCase {
     const name = `기관${String.fromCharCode(65 + i)}`;
     return {
       name,
-      score: scorePool[int(0, scorePool.length - 1)],
+      score: scores[i],
       existing: int(5, 40) * 10,
-      limitPct: 100 / n,
+      // 한도 = 이 기관이 받을 비율 (합계 100%, 정확한 값이 한도를 넘지 않음)
+      limitPct: shareByScore.get(scores[i])!,
       feeMethod,
       products: [
         { name: `${name} 1년물`, maturity: "1y" as const, rate: round3(rate1), tiers: makeTiers() },
@@ -70,6 +74,35 @@ export function randomCase(seed: number): RawCase {
     tolerance: int(0, 3),
     institutions,
   };
+}
+
+/**
+ * 순위별 배분비율(내림차순 정수, 합계 100)을 만든다.
+ * 동점 묶음이 차지하는 순위 칸은 같은 비율로 채워, 묶음 안 기관의 몫이 정수 %가 되게 한다(한도를 그 몫으로 맞추기 위함).
+ * 이 점수 조합으로 만들 수 없으면 null.
+ */
+function makeRatios(scores: number[], int: (min: number, max: number) => number) {
+  const sizes = new Map<number, number>();
+  for (const s of scores) sizes.set(s, (sizes.get(s) ?? 0) + 1);
+  const groups = [...sizes.entries()].sort((a, b) => b[0] - a[0]); // [점수, 기관 수], 점수 높은 순
+
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    // 마지막 묶음을 뺀 묶음의 칸당 비율을 내림차순으로 뽑고, 남은 비율을 마지막 묶음이 나눠 갖는다
+    const values = groups.slice(0, -1).map(() => int(10, 40)).sort((x, y) => y - x);
+    const [, lastSize] = groups[groups.length - 1];
+    const used = values.reduce((s, v, g) => s + v * groups[g][1], 0);
+    const rest = 100 - used;
+    const lastValue = rest / lastSize;
+    const prev = values.length > 0 ? values[values.length - 1] : Infinity;
+    if (rest > 0 && Number.isInteger(lastValue) && lastValue <= prev) {
+      values.push(lastValue);
+      return {
+        rankRatios: groups.flatMap(([, size], g) => Array<number>(size).fill(values[g])),
+        shareByScore: new Map(groups.map(([score], g) => [score, values[g]])),
+      };
+    }
+  }
+  return null;
 }
 
 /** 부동소수점 덧셈 오차를 없애 소수 셋째 자리로 맞춘다 (예: 3.3000000000000003 → 3.3). */
