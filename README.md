@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 적립금 배분 툴 (allocation-tool)
 
-## Getting Started
+자금운용 실무자가 연 1회 예치기관(은행·증권사)별 적립금 배분안을 만드는 웹 도구입니다.
+엑셀로 약 3일 걸리던 작업을 **1시간 이내**로 줄이는 것이 목표입니다.
 
-First, run the development server:
+- 기획서: [PRD.md](PRD.md) · 작업 계획: [PLAN.md](PLAN.md) · 설계서: [DESIGN.md](DESIGN.md) · 점검 결과: [CHECK.md](CHECK.md)
+
+## 무엇을 하나요
+
+1. **기초 조건 입력** — 기존·신규 예치금액, 기관 명단과 한도, 순위별 배분비율, 만기 구성 비율, 허용 오차 (화면 입력 또는 엑셀 양식)
+2. **예치기관 PDF 올리기** — 제안서에서 평가 점수·잔액·상품별 금리·수수료 구간을 자동으로 읽음
+3. **확인·수정** — 누락(회색)·불확실(노란색)·범위 오류(빨간색)를 표시하고, 기관 이름 짝 맞추기. 모두 확인해야 계산 가능
+4. **계산 결과** — 수수료 차감 수익률이 최대인 목표 배분안 + 자금 이동 방법 두 가지(최소 이동 횟수 / 최소 이동 금액) 비교
+5. **내려받기** — 목표 배분안·이동 내역·근거 요약을 담은 결재용 엑셀
+
+### 주요 규칙
+- 숫자 계산은 모두 코드가 합니다(AI는 계산하지 않음). 금액은 억 원 정수, 비율은 0.001% 단위 정수로 오차 없이 계산합니다.
+- 동점은 같은 순위, 억 원 미만은 버린 뒤 소수점이 큰 기관부터 1억씩 보정, 한도는 처리 전 정확한 값으로 확인합니다.
+- 기관이 9곳 이상이면 평가 하위 2곳은 배분에서 제외합니다.
+- 허용 오차는 담당자가 고른 최대 2곳에만 적용하고, 툴이 가장 적게 옮기는 조합을 안내합니다.
+
+## 보안·개인정보
+- 로그인 대신 **사이트 전체 비밀번호 잠금**(`proxy.ts`, 환경변수 `SITE_PASSWORD`).
+- 데이터베이스 없음. 작업 데이터는 사용 중인 PC의 브라우저에만 저장하고 [초기화]로 지웁니다. 서버에는 파일·결과를 남기지 않습니다.
+- 글자를 선택할 수 있는 PDF는 서버 안에서만 읽고, 스캔본은 **파일마다 동의한 뒤에만** OpenAI로 보냅니다.
+- 비밀 값은 `.env`와 Vercel 환경변수에만 두며 저장소에 올리지 않습니다.
+
+## 기술 스택
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · exceljs · unpdf · OpenAI API · zod · vitest
+
+## 실행 방법
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm test        # 자동 테스트 (예시 3건 정답 비교 포함)
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+환경변수(`.env`, 저장소에 올리지 않음):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 이름 | 용도 |
+|---|---|
+| `OPENAI_API_KEY` | 스캔본 PDF 인식 |
+| `SITE_PASSWORD` | 사이트 비밀번호 (배포 환경 필수) |
+| `SITE_USER` | 사이트 아이디 (선택, 기본 `admin`) |
+| `OPENAI_MODEL` | AI 모델 (선택) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 예시 자료
+- `examples/cases.json`, `examples/answers.md` — 정답을 아는 예시 3건(가짜 숫자)과 정답 계산기 `examples/oracle.mjs`
+- `examples/pdf/` — 표준 양식 제안서 PDF 예시와 양식 설명(`FORMAT.md`)
