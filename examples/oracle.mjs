@@ -3,7 +3,10 @@
 // 단위: 금액은 억 원(정수), 금리·수수료율은 0.001% 단위 정수로 바꿔 오차 없이 계산한다.
 
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
+// 테스트에서 불러다 쓸 수 있도록 solve 등을 내보낸다 (파일 맨 아래 export 참고).
 const { cases } = JSON.parse(readFileSync(new URL("./cases.json", import.meta.url), "utf8"));
 
 const milli = (pct) => Math.round(pct * 1000);
@@ -139,11 +142,15 @@ function solve(c) {
   const nodes = alloc.map((a) => ({ name: a.inst.name, existing: a.inst.existing, target: a.target }));
   const plans = [];
   const F = new Array(nodes.length);
+  // 순위 순서 규칙: 평가가 더 낮은(순위가 더 뒤인) 기관이 더 높은 기관보다 많이 받으면 안 된다. 같은 순위끼리는 비교하지 않는다.
+  const respectsRankOrder = (Fv) =>
+    alloc.every((a, i) => alloc.every((b, j) => !(a.rank < b.rank) || Fv[i] >= Fv[j]));
   (function rec(i, left) {
     if (i === nodes.length - 1) {
       const t = nodes[i].target;
       if (left < Math.max(0, t - c.tolerance) || left > t + c.tolerance) return;
       F[i] = left;
+      if (!respectsRankOrder(F)) return;
       plans.push(evaluate([...F]));
       return;
     }
@@ -214,9 +221,10 @@ function solve(c) {
   };
 }
 
-const results = cases.map(solve);
+// 직접 실행(node examples/oracle.mjs)했을 때만 결과를 출력한다. 테스트에서 불러올 때는 출력하지 않는다.
+const runAsScript = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
 
-for (const r of results) {
+for (const r of runAsScript ? cases.map(solve) : []) {
   console.log(`\n===== ${r.id} ${r.title} =====`);
   console.log(`전체 적립금 ${r.T}억 (1년물 ${r.T1}억 / 3년물 ${r.T3}억)`);
   for (const a of r.alloc) {
@@ -232,3 +240,5 @@ for (const r of results) {
     for (const t of p.transfers) console.log(`    ${t.from} → ${t.to} ${t.amount}억`);
   }
 }
+
+export { solve, yieldMilli, milli, feeUnits };
