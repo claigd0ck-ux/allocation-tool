@@ -12,6 +12,7 @@ import Step1Conditions from "./Step1Conditions";
 import Step2Upload from "./Step2Upload";
 import Step3Review from "./Step3Review";
 import Step4Result from "./Step4Result";
+import Step5Download from "./Step5Download";
 import SummaryPanel from "./SummaryPanel";
 
 export default function Workspace() {
@@ -117,7 +118,7 @@ export default function Workspace() {
               summary={state.result && <SummaryPanel result={state.result} choice={state.selectedMove} />}
             />
           ) : (
-            <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
+            <Step5Download state={state} />
           )}
         </section>
       </main>
