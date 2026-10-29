@@ -72,8 +72,25 @@ describe("기초 조건 엑셀 양식", () => {
     expect(parsed).toEqual({ ok: false, message: expect.stringContaining("기초 조건 양식이 아닙니다") });
   });
 
-  it("엑셀 파일이 아니면 거부한다", async () => {
+  it("엑셀 파일이 아니면(이름만 .xlsx) 그 이유를 알려준다", async () => {
     const parsed = await parseConditionsTemplate(new TextEncoder().encode("그냥 글자 파일"));
-    expect(parsed).toEqual({ ok: false, message: "엑셀(.xlsx) 파일을 읽을 수 없습니다." });
+    expect(parsed).toEqual({ ok: false, message: expect.stringContaining("엑셀(.xlsx) 파일이 아닙니다") });
+  });
+
+  it("암호·회사 보안(DRM)이 걸린 엑셀이나 예전 .xls(OLE 형식)는 해제·다시 저장하라고 알려준다", async () => {
+    const ole = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0, 0, 0]);
+    const parsed = await parseConditionsTemplate(ole);
+    expect(parsed).toEqual({ ok: false, message: expect.stringContaining("회사 보안(DRM)") });
+  });
+
+  it("Excel에서 열어 값을 넣고 저장한 양식도 읽는다 (Excel이 저장한 파일 구조)", async () => {
+    // Excel이 다시 저장하면 숨김 시트·서식 구조가 바뀐다 — 그래도 표식과 값을 찾는다
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load((await buildConditionsTemplate()).buffer as ArrayBuffer);
+    wb.getWorksheet("기초조건")!.getCell("B4").value = 1000;
+    const again = new ExcelJS.Workbook();
+    await again.xlsx.load(await wb.xlsx.writeBuffer());
+    const parsed = await parseConditionsTemplate(new Uint8Array(await again.xlsx.writeBuffer()));
+    expect(parsed.ok && parsed.draft.existingTotal).toBe("1000");
   });
 });

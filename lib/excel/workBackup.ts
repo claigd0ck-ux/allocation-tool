@@ -4,6 +4,7 @@
 import ExcelJS from "exceljs";
 import type { ReviewState } from "@/lib/domain/review";
 import { emptyWorkState, type ConditionsDraft } from "@/lib/storage/workState";
+import { excelReadProblem } from "./fileKind";
 
 export const BACKUP_MARK = "allocation-tool-work";
 export const BACKUP_VERSION = 1;
@@ -102,7 +103,7 @@ export async function parseWorkBackup(data: ArrayBuffer): Promise<BackupParse> {
   try {
     await wb.xlsx.load(data);
   } catch {
-    return { ok: false, message: "엑셀(.xlsx) 파일을 읽을 수 없습니다." };
+    return { ok: false, message: excelReadProblem(data) };
   }
   const sheet = wb.getWorksheet(DATA_SHEET);
   if (!sheet || sheet.getCell("A1").value !== BACKUP_MARK) {

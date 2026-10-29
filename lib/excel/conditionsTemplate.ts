@@ -3,6 +3,7 @@
 
 import ExcelJS from "exceljs";
 import type { ConditionsDraft } from "@/lib/storage/workState";
+import { excelReadProblem } from "./fileKind";
 
 /** 툴이 만든 양식인지 알아보는 표식 (숨김 시트 "_양식정보"의 A1·B1). */
 export const TEMPLATE_MARK = "allocation-tool-conditions";
@@ -95,7 +96,7 @@ export async function parseConditionsTemplate(data: ArrayBuffer | Uint8Array): P
   try {
     await wb.xlsx.load(data instanceof Uint8Array ? toArrayBuffer(data) : data);
   } catch {
-    return { ok: false, message: "엑셀(.xlsx) 파일을 읽을 수 없습니다." };
+    return { ok: false, message: excelReadProblem(data) };
   }
   const info = wb.getWorksheet(INFO_SHEET);
   const ws = wb.getWorksheet(SHEET);
