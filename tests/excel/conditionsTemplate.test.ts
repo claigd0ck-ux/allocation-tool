@@ -2,6 +2,7 @@
 // Plan SC: 작업 12 (엑셀 양식 다운로드·업로드)
 
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import { buildConditionsTemplate, MAX_INSTITUTIONS, parseConditionsTemplate } from "@/lib/excel/conditionsTemplate";
 import { emptyWorkState, type ConditionsDraft } from "@/lib/storage/workState";
@@ -81,6 +82,25 @@ describe("기초 조건 엑셀 양식", () => {
     const ole = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0, 0, 0]);
     const parsed = await parseConditionsTemplate(ole);
     expect(parsed).toEqual({ ok: false, message: expect.stringContaining("회사 보안(DRM)") });
+  });
+
+  it("한컴오피스 한셀로 저장한 양식도 읽는다 (x:·ep: 이름공간 접두어가 붙은 파일)", async () => {
+    const zip = await JSZip.loadAsync(await buildConditionsTemplate(example1));
+    // 한셀이 저장하는 모양: 시트 본문은 <x:…>, 문서 정보는 <ep:…> (exceljs는 여기서 멈춘다)
+    zip.file(
+      "docProps/app.xml",
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><ep:Properties xmlns:ep="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><ep:Application>Cell</ep:Application><ep:AppVersion>12.0300</ep:AppVersion></ep:Properties>',
+    );
+    for (const name of Object.keys(zip.files).filter((n) => n.startsWith("xl/") && n.endsWith(".xml") && !n.includes("theme"))) {
+      const xml = await zip.file(name)!.async("string");
+      const main = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+      if (xml.includes(main)) {
+        zip.file(name, xml.replace(main, main.replace("xmlns=", "xmlns:x=")).replace(/<(\/?)(?![?!])([A-Za-z])/g, "<$1x:$2"));
+      }
+    }
+    const hancell = await zip.generateAsync({ type: "uint8array" });
+    await expect(new ExcelJS.Workbook().xlsx.load(hancell.buffer as ArrayBuffer)).rejects.toThrow();
+    expect(await parseConditionsTemplate(hancell)).toEqual({ ok: true, draft: example1 });
   });
 
   it("Excel에서 열어 값을 넣고 저장한 양식도 읽는다 (Excel이 저장한 파일 구조)", async () => {

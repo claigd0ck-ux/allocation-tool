@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import type { ReviewState } from "@/lib/domain/review";
 import { emptyWorkState, type ConditionsDraft } from "@/lib/storage/workState";
 import { excelReadProblem } from "./fileKind";
+import { loadXlsx } from "./load";
 
 export const BACKUP_MARK = "allocation-tool-work";
 export const BACKUP_VERSION = 1;
@@ -99,9 +100,9 @@ export async function buildWorkBackup(backup: WorkBackup, createdAt = new Date()
 
 /** 저장 파일을 읽어 작업 데이터를 되살린다. 툴의 저장 파일이 아니면 거부한다. */
 export async function parseWorkBackup(data: ArrayBuffer): Promise<BackupParse> {
-  const wb = new ExcelJS.Workbook();
+  let wb: ExcelJS.Workbook;
   try {
-    await wb.xlsx.load(data);
+    wb = await loadXlsx(data);
   } catch {
     return { ok: false, message: excelReadProblem(data) };
   }

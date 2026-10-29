@@ -4,6 +4,7 @@
 import ExcelJS from "exceljs";
 import type { ConditionsDraft } from "@/lib/storage/workState";
 import { excelReadProblem } from "./fileKind";
+import { loadXlsx } from "./load";
 
 /** 툴이 만든 양식인지 알아보는 표식 (숨김 시트 "_양식정보"의 A1·B1). */
 export const TEMPLATE_MARK = "allocation-tool-conditions";
@@ -92,9 +93,9 @@ export async function buildConditionsTemplate(draft?: ConditionsDraft): Promise<
 
 /** 채운 양식을 읽어 기초 조건 입력값으로 바꾼다. 툴의 양식이 아니면 거부한다. */
 export async function parseConditionsTemplate(data: ArrayBuffer | Uint8Array): Promise<TemplateParse> {
-  const wb = new ExcelJS.Workbook();
+  let wb: ExcelJS.Workbook;
   try {
-    await wb.xlsx.load(data instanceof Uint8Array ? toArrayBuffer(data) : data);
+    wb = await loadXlsx(data);
   } catch {
     return { ok: false, message: excelReadProblem(data) };
   }
@@ -141,8 +142,4 @@ function text(value: ExcelJS.CellValue): string {
   if (typeof value === "object" && "result" in value && value.result !== undefined) return text(value.result as ExcelJS.CellValue);
   if (typeof value === "object" && "richText" in value) return value.richText.map((t) => t.text).join("").trim();
   return String(value).trim();
-}
-
-function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
-  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
 }
