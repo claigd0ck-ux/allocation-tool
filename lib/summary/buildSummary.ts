@@ -34,7 +34,17 @@ export function buildSummary(r: CalcSuccess, choice: MoveChoice): SummarySection
     title: "2. 순위와 기관별 배분",
     lines: [
       "평가 점수로 순위를 정하고, 순위별 배분비율대로 기관별 금액을 정했습니다.",
-      ...rows.map((x) => `${x.rank}위 ${x.name}(평가 ${x.score}점): 배분비율 ${x.ratioPct}% → ${formatEok(x.target)}`),
+      ...rows
+        .filter((x) => !x.excluded)
+        .map((x) => `${x.rank}위 ${x.name}(평가 ${x.score}점): 배분비율 ${x.ratioPct}% → ${formatEok(x.target)}`),
+      ...(rows.some((x) => x.excluded)
+        ? [
+            `기관이 ${rows.length}곳이라 평가 하위 ${rows.filter((x) => x.excluded).length}곳은 배분에서 제외했습니다: ${rows
+              .filter((x) => x.excluded)
+              .map((x) => `${x.rank}위 ${x.name}(평가 ${x.score}점, 현재 잔액 ${formatEok(x.existing)}은 전액 다른 기관으로 이동)`)
+              .join(", ")}.`,
+          ]
+        : []),
       ...ties.map((names) => `${names.join("·")}은(는) 평가 점수가 같아 같은 순위로 보고, 차지한 순위들의 배분비율을 합쳐 똑같이 나눴습니다.`),
       ...(rounded.length > 0
         ? [
@@ -53,7 +63,9 @@ export function buildSummary(r: CalcSuccess, choice: MoveChoice): SummarySection
       `전체 3년물 ${formatEok(r.amount3y)}을(를) 수수료 차감 수익이 가장 커지도록 ${
         with3y.length > 0 ? with3y.map((x) => `${x.name} ${formatEok(x.amount3y)}`).join(", ") : "배정할 기관 없이"
       }에 배정했습니다.`,
-      ...rows.map((x) => `${x.name}: 1년물 ${formatEok(x.amount1y)}, 3년물 ${formatEok(x.amount3y)}, 수수료 차감 수익률 ${formatMilli(x.yieldMilli)}`),
+      ...rows
+        .filter((x) => !x.excluded)
+        .map((x) => `${x.name}: 1년물 ${formatEok(x.amount1y)}, 3년물 ${formatEok(x.amount3y)}, 수수료 차감 수익률 ${formatMilli(x.yieldMilli)}`),
       `전체 수수료 차감 수익률은 ${formatMilli(r.plan.totalYieldMilli)}입니다 (금리 − 수수료율, 소수 넷째 자리에서 반올림).`,
     ],
   };

@@ -1,6 +1,7 @@
 // Design Ref: §2.2 ① / §5 — 기초 조건 입력값 검사. 모든 문제를 한 번에 모아 칸별로 보여준다
 // Plan SC: 작업 11 (기초 조건 입력 화면). 통과하면 계산용 Conditions로 바꾼다.
 
+import { includedCount } from "@/lib/calc/exclusion";
 import type { Conditions } from "@/lib/domain/types";
 import type { ConditionsDraft } from "@/lib/storage/workState";
 import { parseEok, parsePct, sumPct } from "./numbers";
@@ -57,8 +58,12 @@ export function checkConditions(draft: ConditionsDraft): ConditionsCheck {
 
   // 순위별 배분비율
   const ratios = draft.rankRatios.map((r, i) => num(`rankRatios.${i}`, parsePct(r)));
-  if (draft.rankRatios.length !== draft.limits.length) {
-    errors.rankRatios = `순위별 배분비율은 기관 수(${draft.limits.length}곳)만큼 입력해야 합니다.`;
+  const kept = includedCount(draft.limits.length);
+  if (draft.rankRatios.length !== kept) {
+    errors.rankRatios =
+      kept === draft.limits.length
+        ? `순위별 배분비율은 기관 수(${kept}곳)만큼 입력해야 합니다.`
+        : `기관이 ${draft.limits.length}곳이라 평가 하위 ${draft.limits.length - kept}곳은 제외되므로, 순위별 배분비율은 ${kept}개를 입력해야 합니다.`;
   } else if (ratios.length > 0 && ratios.every((v) => v !== null)) {
     const values = ratios as number[];
     const sum = sumPct(values);

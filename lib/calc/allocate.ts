@@ -3,6 +3,7 @@
 
 import type { Conditions, Eok, Institution } from "@/lib/domain/types";
 import { isEok, pctToMilli } from "@/lib/domain/units";
+import { includedCount } from "./exclusion";
 import { rankByScore } from "./rank";
 
 /** 100% = 100 × 1000 (0.001% 단위). */
@@ -18,7 +19,8 @@ export type AllocationErrorCode =
   | "RATIO_ORDER"
   | "LIMIT_MISSING"
   | "LIMIT_SUM"
-  | "OVER_LIMIT";
+  | "OVER_LIMIT"
+  | "EXCLUSION_TIE";
 
 /** 계산을 막는 이유 하나. 화면에 그대로 보여줄 수 있는 문장을 담는다. */
 export interface AllocationError {
@@ -43,6 +45,8 @@ export interface TargetAllocation {
   limitExact: number;
   /** 억 원 미만 처리 때문에 1억 미만으로 한도를 넘었는지 (PRD상 허용, 화면 안내용). */
   overLimitByRounding: boolean;
+  /** 기관이 9곳 이상이라 평가 하위 2곳에 들어 배분에서 제외됐는지 (목표 0억, 잔액은 전액 이동). */
+  excluded: boolean;
 }
 
 export type TargetResult =
@@ -54,6 +58,7 @@ export type TargetResult =
  * 1) 평가 점수로 순위를 매기고, 동점은 차지한 순위들의 배분비율을 합쳐 똑같이 나눈다.
  * 2) 억 원 미만은 버리고, 모자란 합계는 버린 소수점이 큰 기관부터 1억씩 더한다(같으면 순위가 높은 기관 먼저).
  * 3) 한도는 억 원 미만 처리 전 정확한 값으로 확인한다. 넘으면 계산을 막는다.
+ * 기관이 9곳 이상이면 평가 하위 2곳은 목표 0억으로 제외하고, 배분비율은 남는 기관 수만큼 받는다(경계 동점이면 막는다).
  * 계산 전 검사(비율·한도 합계, 순서, 기존 예치금액 일치 등)에 걸리면 이유 목록을 돌려준다.
  */
 export function allocateTargets(institutions: readonly Institution[], conditions: Conditions): TargetResult {
@@ -62,16 +67,32 @@ export function allocateTargets(institutions: readonly Institution[], conditions
   }
 
   const errors: AllocationError[] = [];
+  const kept = includedCount(institutions.length);
   checkAmounts(institutions, conditions, errors);
-  const ratioMilli = checkRatios(institutions.length, conditions.rankRatios, errors);
+  const ratioMilli = checkRatios(kept, institutions.length, conditions.rankRatios, errors);
   const limitMilli = checkLimits(institutions, conditions.limits, errors);
+  const groups = rankByScore(institutions);
+  // 제외 경계(남는 마지막 순위와 제외되는 첫 순위)에 동점이 걸치면 누구를 뺄지 정할 수 없다
+  const straddling = groups.find((g) => g.start < kept && g.start + g.members.length > kept);
+  if (straddling) {
+    errors.push({
+      code: "EXCLUSION_TIE",
+      message: `기관이 ${institutions.length}곳이라 평가 하위 ${institutions.length - kept}곳을 제외해야 하는데, ${straddling.members
+        .map((m) => m.name)
+        .join("·")}의 평가 점수(${straddling.score}점)가 같아 누구를 제외할지 정할 수 없습니다. 평가 점수를 확인해 주세요.`,
+    });
+  }
   if (errors.length > 0 || !ratioMilli || !limitMilli) return { ok: false, errors };
 
   const total = institutions.reduce((sum, i) => sum + i.existing, 0) + conditions.newDeposit;
 
   // 1) 순위별 배분비율 적용 (동점은 합쳐서 균등 분할). 정확한 값 = total × 비율합 ÷ (100% × 묶인 기관 수)
-  const rows = rankByScore(institutions).flatMap((group) => {
+  //    제외 기관(하위 2곳)은 목표 0억
+  const rows = groups.flatMap((group) => {
     const k = group.members.length;
+    if (group.start >= kept) {
+      return group.members.map((institution) => ({ institution, rank: group.rank, ratioPct: 0, num: 0, den: 1, floor: 0, rem: 0, excluded: true }));
+    }
     const ratioSum = ratioMilli.slice(group.start, group.start + k).reduce((s, r) => s + r, 0);
     const num = total * ratioSum;
     const den = FULL_PCT_MILLI * k;
@@ -84,6 +105,7 @@ export function allocateTargets(institutions: readonly Institution[], conditions
       den,
       floor,
       rem: num - floor * den,
+      excluded: false,
     }));
   });
 
@@ -104,6 +126,7 @@ export function allocateTargets(institutions: readonly Institution[], conditions
       roundedUp: roundedUp.has(r),
       limitExact: (total * limit) / FULL_PCT_MILLI,
       overLimitByRounding: target * FULL_PCT_MILLI > total * limit,
+      excluded: r.excluded,
     };
   });
 
@@ -147,13 +170,14 @@ function checkAmounts(institutions: readonly Institution[], conditions: Conditio
   }
 }
 
-/** 순위별 배분비율: 개수 = 기관 수, 합계 100%, 순위순으로 같거나 작아야 한다. 통과하면 0.001% 정수 배열. */
-function checkRatios(count: number, ratios: readonly number[], errors: AllocationError[]): number[] | null {
+/** 순위별 배분비율: 개수 = 배분에 남는 기관 수, 합계 100%, 순위순으로 같거나 작아야 한다. 통과하면 0.001% 정수 배열. */
+function checkRatios(count: number, institutionCount: number, ratios: readonly number[], errors: AllocationError[]): number[] | null {
   const milli = toMilliList(ratios, "순위별 배분비율", errors);
   if (!milli) return null;
   let ok = true;
   if (milli.length !== count) {
-    errors.push({ code: "RATIO_COUNT", message: `순위별 배분비율은 기관 수(${count}곳)만큼 입력해야 합니다. 지금 ${milli.length}개입니다.` });
+    const why = count === institutionCount ? `기관 수(${count}곳)만큼` : `평가 하위 ${institutionCount - count}곳을 뺀 ${count}곳만큼`;
+    errors.push({ code: "RATIO_COUNT", message: `순위별 배분비율은 ${why} 입력해야 합니다. 지금 ${milli.length}개입니다.` });
     ok = false;
   }
   const sum = milli.reduce((s, r) => s + r, 0);

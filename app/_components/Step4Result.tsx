@@ -48,6 +48,7 @@ export default function Step4Result({ state, update, summary }: Props) {
                 <td className="py-2">{row.score}</td>
                 <td className="py-2">{row.ratioPct}%</td>
                 <td className="py-2 font-semibold">
+                  {row.excluded && <span className="mr-1 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-normal text-zinc-700">제외(하위)</span>}
                   {formatEok(row.target)}
                   {row.roundedUp && <span className="ml-1 text-xs text-zinc-500" title={`정확한 값 ${row.exact}억`}>(+1억 보정)</span>}
                 </td>

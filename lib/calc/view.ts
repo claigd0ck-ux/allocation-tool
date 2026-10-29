@@ -22,6 +22,8 @@ export interface AllocationRow {
   limitExact: number;
   roundedUp: boolean;
   overLimitByRounding: boolean;
+  /** 9곳 이상이라 평가 하위 2곳에 들어 배분에서 제외됨 */
+  excluded: boolean;
 }
 
 /** 목표 배분안을 기관별 한 줄씩 정리한다 (순위 순서). */
@@ -44,6 +46,7 @@ export function allocationRows(r: CalcSuccess): AllocationRow[] {
       limitExact: t.limitExact,
       roundedUp: t.roundedUp,
       overLimitByRounding: t.overLimitByRounding,
+      excluded: t.excluded,
     };
   });
 }

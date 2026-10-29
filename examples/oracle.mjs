@@ -47,11 +47,26 @@ function solve(c) {
     else groups.push({ score: inst.score, members: [inst] });
   }
 
+  // 기관이 9곳 이상이면 평가 하위 2곳은 제외 (목표 0억, 이동 때 허용 오차 없이 0억). 경계에 동점이 걸치면 정할 수 없다.
+  const kept = insts.length >= 9 ? insts.length - 2 : insts.length;
+  {
+    let pos = 0;
+    for (const g of groups) {
+      if (pos < kept && pos + g.members.length > kept) throw new Error(`${c.id}: 제외 경계에 동점`);
+      pos += g.members.length;
+    }
+  }
+
   // 2) 기관별 목표 금액 (정확값은 분수 num/den 억 원)
   let rankPos = 0;
   const alloc = [];
   for (const g of groups) {
     const k = g.members.length;
+    if (rankPos >= kept) {
+      for (const inst of g.members) alloc.push({ inst, rank: rankPos + 1, ratio: 0, num: 0, den: 1, floor: 0, remNum: 0, excluded: true });
+      rankPos += k;
+      continue;
+    }
     const ratioSum = c.rankRatios.slice(rankPos, rankPos + k).reduce((s, r) => s + r, 0);
     for (const inst of g.members) {
       const num = T * ratioSum;
@@ -139,7 +154,7 @@ function solve(c) {
   });
 
   // 5) 자금 이동 — 기관별 최종 금액 F는 목표 ± 허용 오차, 합계 = 전체 적립금
-  const nodes = alloc.map((a) => ({ name: a.inst.name, existing: a.inst.existing, target: a.target }));
+  const nodes = alloc.map((a) => ({ name: a.inst.name, existing: a.inst.existing, target: a.target, tol: a.excluded ? 0 : c.tolerance }));
   const plans = [];
   const F = new Array(nodes.length);
   // 순위 순서 규칙: 평가가 더 낮은(순위가 더 뒤인) 기관이 더 높은 기관보다 많이 받으면 안 된다. 같은 순위끼리는 비교하지 않는다.
@@ -148,14 +163,14 @@ function solve(c) {
   (function rec(i, left) {
     if (i === nodes.length - 1) {
       const t = nodes[i].target;
-      if (left < Math.max(0, t - c.tolerance) || left > t + c.tolerance) return;
+      if (left < Math.max(0, t - nodes[i].tol) || left > t + nodes[i].tol) return;
       F[i] = left;
       if (!respectsRankOrder(F)) return;
       plans.push(evaluate([...F]));
       return;
     }
     const t = nodes[i].target;
-    for (let f = Math.max(0, t - c.tolerance); f <= t + c.tolerance; f++) { F[i] = f; rec(i + 1, left - f); }
+    for (let f = Math.max(0, t - nodes[i].tol); f <= t + nodes[i].tol; f++) { F[i] = f; rec(i + 1, left - f); }
   })(0, T);
 
   function evaluate(Fv) {

@@ -4,6 +4,7 @@
 // Plan SC: 작업 11 (기초 조건 입력 화면)
 
 import { useState, type ReactNode } from "react";
+import { includedCount } from "@/lib/calc/exclusion";
 import type { ConditionsDraft, WorkState } from "@/lib/storage/workState";
 import { checkConditions } from "@/lib/validate/conditions";
 import { parsePct, sumPct } from "@/lib/validate/numbers";
@@ -36,14 +37,16 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
   const set = (key: Exclude<keyof ConditionsDraft, "limits" | "rankRatios">) => (value: string) =>
     edit((d) => ({ ...d, [key]: value }));
 
+  // 배분비율 칸 수 = 배분 대상 기관 수 (9곳 이상이면 하위 2곳 제외)
+  const resizeRatios = (ratios: string[], institutionCount: number) => {
+    const n = includedCount(institutionCount);
+    return ratios.length >= n ? ratios.slice(0, n) : [...ratios, ...Array<string>(n - ratios.length).fill("")];
+  };
   const addInstitution = () =>
-    edit((d) => ({ ...d, limits: [...d.limits, { name: "", limitPct: "" }], rankRatios: [...d.rankRatios, ""] }));
+    edit((d) => ({ ...d, limits: [...d.limits, { name: "", limitPct: "" }], rankRatios: resizeRatios(d.rankRatios, d.limits.length + 1) }));
   const removeInstitution = (i: number) =>
-    edit((d) => ({
-      ...d,
-      limits: d.limits.filter((_, k) => k !== i),
-      rankRatios: d.rankRatios.slice(0, Math.max(0, d.limits.length - 1)),
-    }));
+    edit((d) => ({ ...d, limits: d.limits.filter((_, k) => k !== i), rankRatios: resizeRatios(d.rankRatios, d.limits.length - 1) }));
+  const excludedCount = draft.limits.length - includedCount(draft.limits.length);
 
   const pctSum = (texts: string[]) => {
     if (texts.length === 0) return null;
@@ -118,6 +121,12 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
               <SumBadge sum={ratioSum} />
             </div>
           </div>
+        )}
+        {excludedCount > 0 && (
+          <p className="text-sm text-zinc-600">
+            기관이 {draft.limits.length}곳이라 평가 하위 {excludedCount}곳은 배분에서 제외됩니다. 제외 기관의 잔액은 전액 다른 기관으로 옮기며,
+            배분비율은 배분 대상 {draft.rankRatios.length}곳만 입력합니다.
+          </p>
         )}
         <ErrorText text={err.rankRatios} />
       </Group>

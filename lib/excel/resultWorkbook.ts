@@ -34,6 +34,7 @@ export async function buildResultWorkbook(r: CalcSuccess, choice: MoveChoice, cr
   styleHeader(s1);
   for (const x of allocationRows(r)) {
     const notes = [
+      x.excluded ? "9곳 이상이라 평가 하위로 배분 제외 (잔액 전액 이동)" : "",
       x.roundedUp ? `억 원 미만 처리로 1억 보정 (정확한 값 ${x.exact}억)` : "",
       x.overLimitByRounding ? "억 원 미만 처리로 한도 1억 미만 초과(허용)" : "",
     ].filter(Boolean);
