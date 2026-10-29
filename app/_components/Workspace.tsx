@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useWorkState } from "@/lib/storage/useWorkState";
 import type { Step } from "@/lib/storage/workState";
 import { gateFor, STEPS, stepStatus } from "@/lib/workflow/steps";
+import ConditionsExcelButtons from "./ConditionsExcelButtons";
 import Step1Conditions from "./Step1Conditions";
 
 export default function Workspace() {
@@ -95,7 +96,12 @@ export default function Workspace() {
             {"①②③④⑤"[current - 1]} {STEPS[current - 1].label}
           </h2>
           {current === 1 ? (
-            <Step1Conditions state={state} update={update} showRequired={attempted} />
+            <Step1Conditions
+              state={state}
+              update={update}
+              showRequired={attempted}
+              toolbar={<ConditionsExcelButtons update={update} />}
+            />
           ) : (
             <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
           )}
