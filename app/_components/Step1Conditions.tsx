@@ -3,10 +3,11 @@
 // Design Ref: §2.2 ① 기초 조건 — 금액·기관 명단과 한도·순위별 배분비율·만기 구성 비율·허용 오차를 입력하고 바로 검사한다
 // Plan SC: 작업 11 (기초 조건 입력 화면)
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { ConditionsDraft, WorkState } from "@/lib/storage/workState";
 import { checkConditions } from "@/lib/validate/conditions";
 import { parsePct, sumPct } from "@/lib/validate/numbers";
+import { recalculate } from "@/lib/workflow/recalc";
 
 interface Props {
   state: WorkState;
@@ -162,6 +163,33 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
       <p className={"text-sm " + (check.ok ? "text-emerald-700" : "text-zinc-500")}>
         {check.ok ? "✔ 기초 조건을 모두 확인했습니다. [다음 단계]로 PDF를 올려 주세요." : "빨간 칸을 모두 고쳐야 다음 단계로 갈 수 있습니다."}
       </p>
+
+      {state.review.institutions.length > 0 && <QuickRecalc state={state} update={update} />}
+    </div>
+  );
+}
+
+/** 이미 기관 자료를 확인해 둔 상태에서 조건만 바꿨을 때: ②·③을 다시 거치지 않고 바로 계산한다 (작업 20). */
+function QuickRecalc({ state, update }: Pick<Props, "state" | "update">) {
+  const [reasons, setReasons] = useState<string[]>([]);
+  const run = () => {
+    const r = recalculate(state);
+    if (!r.ok) {
+      setReasons(r.reasons);
+      return;
+    }
+    setReasons([]);
+    update(() => r.state);
+  };
+  return (
+    <div className="rounded-md border border-zinc-200 p-4 text-sm">
+      <p className="mb-2 text-zinc-600">확인을 마친 기관 자료가 있습니다. 조건만 바꿨다면 바로 다시 계산할 수 있습니다.</p>
+      <button type="button" onClick={run} className="rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700">
+        바뀐 조건으로 바로 다시 계산
+      </button>
+      {reasons.map((r) => (
+        <p key={r} className="mt-2 text-red-600">{r}</p>
+      ))}
     </div>
   );
 }

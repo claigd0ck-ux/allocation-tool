@@ -4,12 +4,12 @@
 // Plan SC: 작업 15
 
 import { useState } from "react";
-import { calculatePlan } from "@/lib/calc";
 import type { FeeMethod, Field } from "@/lib/domain/types";
 import type { ReviewInstitution, ReviewProduct, ReviewState } from "@/lib/domain/review";
 import { checkReview, confirmField, displayName, editField, emptyInstitution, emptyTier, suggestMatch, type FieldKind } from "@/lib/review/review";
 import type { WorkState } from "@/lib/storage/workState";
 import { checkConditions } from "@/lib/validate/conditions";
+import { recalculate } from "@/lib/workflow/recalc";
 
 interface Props {
   state: WorkState;
@@ -39,13 +39,12 @@ export default function Step3Review({ state, update }: Props) {
     });
 
   const runCalculation = () => {
-    if (!check.institutions || !conditions) return;
-    const result = calculatePlan(check.institutions, conditions);
-    if (!result.ok) {
-      setCalcErrors(result.errors.map((e) => e.message));
+    const r = recalculate(state);
+    if (!r.ok) {
+      setCalcErrors(r.reasons);
       return;
     }
-    update((s) => ({ ...s, result, summary: null, step: 4 }));
+    update(() => r.state);
   };
 
   const total = check.uncertain + check.missing + check.errors;
