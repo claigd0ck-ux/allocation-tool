@@ -1,0 +1,119 @@
+{
+  "_note": "금액은 억 원, 금리·수수료율은 % 값. 수수료 구간 from은 그 금액 이상부터 적용.",
+  "cases": [
+    {
+      "id": "case1",
+      "title": "정상 케이스",
+      "newDeposit": 200,
+      "rankRatios": [40, 30, 20, 10],
+      "maturityMix": { "1y": 90, "3y": 10 },
+      "tolerance": 10,
+      "institutions": [
+        {
+          "name": "A은행", "score": 95, "existing": 300, "limitPct": 40, "feeMethod": "whole",
+          "products": [
+            { "name": "A은행 1년물", "maturity": "1y", "rate": 3.5, "tiers": [{ "from": 0, "fee": 0.15 }, { "from": 300, "fee": 0.1 }] },
+            { "name": "A은행 3년물", "maturity": "3y", "rate": 3.9, "tiers": [{ "from": 0, "fee": 0.2 }] }
+          ]
+        },
+        {
+          "name": "B증권", "score": 90, "existing": 350, "limitPct": 30, "feeMethod": "progressive",
+          "products": [
+            { "name": "B증권 1년물", "maturity": "1y", "rate": 3.45, "tiers": [{ "from": 0, "fee": 0.12 }, { "from": 100, "fee": 0.08 }] },
+            { "name": "B증권 3년물", "maturity": "3y", "rate": 3.95, "tiers": [{ "from": 0, "fee": 0.25 }, { "from": 50, "fee": 0.18 }] }
+          ]
+        },
+        {
+          "name": "C은행", "score": 85, "existing": 150, "limitPct": 20, "feeMethod": "whole",
+          "products": [
+            { "name": "C은행 1년물", "maturity": "1y", "rate": 3.4, "tiers": [{ "from": 0, "fee": 0.05 }] },
+            { "name": "C은행 3년물", "maturity": "3y", "rate": 3.85, "tiers": [{ "from": 0, "fee": 0.15 }] }
+          ]
+        },
+        {
+          "name": "D은행", "score": 80, "existing": 200, "limitPct": 10, "feeMethod": "progressive",
+          "products": [
+            { "name": "D은행 1년물", "maturity": "1y", "rate": 3.55, "tiers": [{ "from": 0, "fee": 0.2 }, { "from": 100, "fee": 0.12 }] },
+            { "name": "D은행 3년물", "maturity": "3y", "rate": 3.8, "tiers": [{ "from": 0, "fee": 0.1 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case2",
+      "title": "동점 케이스 (허용 오차 0억)",
+      "newDeposit": 100,
+      "rankRatios": [40, 30, 20, 10],
+      "maturityMix": { "1y": 90, "3y": 10 },
+      "tolerance": 0,
+      "institutions": [
+        {
+          "name": "A은행", "score": 93, "existing": 350, "limitPct": 40, "feeMethod": "whole",
+          "products": [
+            { "name": "A은행 1년물", "maturity": "1y", "rate": 3.48, "tiers": [{ "from": 0, "fee": 0.12 }, { "from": 200, "fee": 0.09 }] },
+            { "name": "A은행 3년물", "maturity": "3y", "rate": 3.88, "tiers": [{ "from": 0, "fee": 0.2 }] }
+          ]
+        },
+        {
+          "name": "B증권", "score": 88, "existing": 300, "limitPct": 25, "feeMethod": "progressive",
+          "products": [
+            { "name": "B증권 1년물", "maturity": "1y", "rate": 3.42, "tiers": [{ "from": 0, "fee": 0.1 }, { "from": 150, "fee": 0.06 }] },
+            { "name": "B증권 3년물", "maturity": "3y", "rate": 3.9, "tiers": [{ "from": 0, "fee": 0.22 }, { "from": 40, "fee": 0.15 }] }
+          ]
+        },
+        {
+          "name": "C은행", "score": 88, "existing": 200, "limitPct": 25, "feeMethod": "whole",
+          "products": [
+            { "name": "C은행 1년물", "maturity": "1y", "rate": 3.46, "tiers": [{ "from": 0, "fee": 0.11 }] },
+            { "name": "C은행 3년물", "maturity": "3y", "rate": 3.82, "tiers": [{ "from": 0, "fee": 0.12 }] }
+          ]
+        },
+        {
+          "name": "D은행", "score": 80, "existing": 50, "limitPct": 10, "feeMethod": "whole",
+          "products": [
+            { "name": "D은행 1년물", "maturity": "1y", "rate": 3.5, "tiers": [{ "from": 0, "fee": 0.15 }, { "from": 50, "fee": 0.1 }] },
+            { "name": "D은행 3년물", "maturity": "3y", "rate": 3.75, "tiers": [{ "from": 0, "fee": 0.05 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "case3",
+      "title": "억 원 미만 처리 케이스",
+      "newDeposit": 80,
+      "rankRatios": [36, 28, 21, 15],
+      "maturityMix": { "1y": 90, "3y": 10 },
+      "tolerance": 5,
+      "institutions": [
+        {
+          "name": "A은행", "score": 91, "existing": 400, "limitPct": 36, "feeMethod": "whole",
+          "products": [
+            { "name": "A은행 1년물", "maturity": "1y", "rate": 3.51, "tiers": [{ "from": 0, "fee": 0.14 }, { "from": 300, "fee": 0.09 }] },
+            { "name": "A은행 3년물", "maturity": "3y", "rate": 3.91, "tiers": [{ "from": 0, "fee": 0.21 }] }
+          ]
+        },
+        {
+          "name": "B증권", "score": 87, "existing": 250, "limitPct": 28, "feeMethod": "progressive",
+          "products": [
+            { "name": "B증권 1년물", "maturity": "1y", "rate": 3.44, "tiers": [{ "from": 0, "fee": 0.11 }, { "from": 200, "fee": 0.07 }] },
+            { "name": "B증권 3년물", "maturity": "3y", "rate": 3.93, "tiers": [{ "from": 0, "fee": 0.23 }, { "from": 60, "fee": 0.16 }] }
+          ]
+        },
+        {
+          "name": "C은행", "score": 84, "existing": 200, "limitPct": 21, "feeMethod": "whole",
+          "products": [
+            { "name": "C은행 1년물", "maturity": "1y", "rate": 3.43, "tiers": [{ "from": 0, "fee": 0.06 }] },
+            { "name": "C은행 3년물", "maturity": "3y", "rate": 3.86, "tiers": [{ "from": 0, "fee": 0.14 }] }
+          ]
+        },
+        {
+          "name": "D은행", "score": 79, "existing": 100, "limitPct": 15, "feeMethod": "progressive",
+          "products": [
+            { "name": "D은행 1년물", "maturity": "1y", "rate": 3.56, "tiers": [{ "from": 0, "fee": 0.18 }, { "from": 100, "fee": 0.11 }] },
+            { "name": "D은행 3년물", "maturity": "3y", "rate": 3.78, "tiers": [{ "from": 0, "fee": 0.09 }] }
+          ]
+        }
+      ]
+    }
+  ]
+}
