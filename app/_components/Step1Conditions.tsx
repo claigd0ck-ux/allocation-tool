@@ -35,8 +35,9 @@ export default function Step1Conditions({ state, update, toolbar, showRequired }
   // 조건을 바꾸면 예전 계산 결과·근거 요약은 맞지 않으므로 지운다
   const edit = (fn: (d: ConditionsDraft) => ConditionsDraft) =>
     update((s) => ({ ...s, conditions: fn(s.conditions), result: null, summary: null }));
+  // 전체 적립금(기존·신규 예치금)이나 3년물 비율이 바뀌면 정해 둔 3년물 금액을 비워 다시 정하게 한다
   const set = (key: Exclude<keyof ConditionsDraft, "limits" | "rankRatios">) => (value: string) =>
-    edit((d) => ({ ...d, [key]: value }));
+    edit((d) => ({ ...d, [key]: value, ...(["existingTotal", "newDeposit", "mix1y", "mix3y"].includes(key) && d[key] !== value ? { amount3y: "" } : {}) }));
 
   // 배분비율 칸 수 = 배분 대상 기관 수 (9곳 이상이면 하위 2곳 제외)
   const resizeRatios = (ratios: string[], institutionCount: number) => {

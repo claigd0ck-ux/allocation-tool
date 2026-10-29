@@ -98,8 +98,10 @@ export function checkConditions(draft: ConditionsDraft): ConditionsCheck {
       const exact = (total * milli) / 100_000;
       amount3yNeeded = { exact, lower: Math.floor(exact), upper: Math.floor(exact) + 1 };
       const parsed = num("amount3y", parseEok(draft.amount3y));
-      if (parsed !== null && parsed > total) errors.amount3y = `전체 적립금(${total}억)보다 클 수 없습니다.`;
-      else if (parsed !== null) amount3y = parsed;
+      // 금액·비율이 바뀌면 예전 3년물 금액은 맞지 않으므로, 지금 비율에 가까운 두 값 중 하나만 받는다
+      if (parsed !== null && parsed !== amount3yNeeded.lower && parsed !== amount3yNeeded.upper) {
+        errors.amount3y = `금액이나 비율이 바뀌었습니다. 3년물 금액을 ${amount3yNeeded.lower}억 또는 ${amount3yNeeded.upper}억으로 다시 정해 주세요.`;
+      } else if (parsed !== null) amount3y = parsed;
     }
   }
 

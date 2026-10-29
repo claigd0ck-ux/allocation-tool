@@ -103,7 +103,15 @@ describe("기초 조건 검사", () => {
 
     const filled = checkConditions({ ...draft, amount3y: "124" });
     expect(filled.ok && filled.conditions.amount3y).toBe(124);
-    expect(checkConditions({ ...draft, amount3y: "5000" }).errors.amount3y).toContain("전체 적립금(1235억)");
+    expect(checkConditions({ ...draft, amount3y: "5000" }).errors.amount3y).toContain("123억 또는 124억으로 다시 정해 주세요");
+  });
+
+  it("신규 예치금이 바뀌면 예전 3년물 금액으로는 통과하지 않고 다시 정하게 한다", () => {
+    // 1,235억(123.5억)에서 124억으로 정한 뒤 신규 예치금을 305억으로 바꾸면 1,305억 × 10% = 130.5억
+    const r = checkConditions({ ...example1, newDeposit: "305", amount3y: "124" });
+    expect(r.ok).toBe(false);
+    expect(r.errors.amount3y).toBe("금액이나 비율이 바뀌었습니다. 3년물 금액을 130억 또는 131억으로 다시 정해 주세요.");
+    expect(checkConditions({ ...example1, newDeposit: "305", amount3y: "131" }).ok).toBe(true);
   });
 
   it("3년물 금액이 정수면 3년물 금액 칸은 쓰지 않는다", () => {
