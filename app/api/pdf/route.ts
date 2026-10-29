@@ -14,6 +14,7 @@ export async function POST(request: Request) {
 
   const allowOcr = new URL(request.url).searchParams.get("allowOcr") === "1";
   const data = new Uint8Array(await upload.file.arrayBuffer());
-  const result = await recognizePdf(data, upload.file.name, { allowOcrForTextPdf: allowOcr });
+  // allowOcr=1은 화면에서 실무자가 파일마다 동의했을 때만 붙는다 (사이트 전체가 비밀번호로 잠겨 있어 외부인은 호출할 수 없다)
+  const result = await recognizePdf(data, upload.file.name, { allowOcr });
   return Response.json(result, { headers: { "Cache-Control": "no-store" } });
 }

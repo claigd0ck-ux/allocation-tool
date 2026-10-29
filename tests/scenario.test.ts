@@ -85,7 +85,7 @@ describe("전체 시나리오 — 예시 1을 처음부터 끝까지", () => {
     const uploads = ["KB-A은행_이름다름.pdf", "B증권.pdf", "C은행_누락.pdf", "D은행_스캔본.pdf"];
     const institutions: ReviewInstitution[] = [];
     for (const [k, file] of uploads.entries()) {
-      const r = await recognizePdf(pdf(file), file, { client: fakeOcr });
+      const r = await recognizePdf(pdf(file), file, { client: fakeOcr, allowOcr: true });
       expect(r.ok).toBe(true);
       if (!r.ok) return;
       const name = r.institution.name.value ?? "";

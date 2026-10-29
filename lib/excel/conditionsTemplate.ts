@@ -4,7 +4,7 @@
 import ExcelJS from "exceljs";
 import type { ConditionsDraft } from "@/lib/storage/workState";
 import { excelReadProblem } from "./fileKind";
-import { loadXlsx } from "./load";
+import { loadXlsx, UnsafeWorkbookError } from "./load";
 
 /** 툴이 만든 양식인지 알아보는 표식 (숨김 시트 "_양식정보"의 A1·B1). */
 export const TEMPLATE_MARK = "allocation-tool-conditions";
@@ -60,7 +60,7 @@ export async function buildConditionsTemplate(draft?: ConditionsDraft): Promise<
     ["만기 구성 비율 — 1년물", "mix1y", "%", "1년물 + 3년물 = 100%"],
     ["만기 구성 비율 — 3년물", "mix3y", "%", ""],
     ["3년물 금액 (필요할 때만)", "amount3y", "억 원", "전체 × 3년물 비율이 정수가 아닐 때만 입력"],
-    ["허용 오차 (±)", "tolerance", "억 원", "모든 기관에 같은 폭"],
+    ["허용 오차 (±)", "tolerance", "억 원", "기관 표에서 O 표시한 기관(최대 2곳)에만 적용"],
   ];
   rows.forEach(([label, key, unit, note], i) => {
     const r = 4 + i;
@@ -98,8 +98,8 @@ export async function parseConditionsTemplate(data: ArrayBuffer | Uint8Array): P
   let wb: ExcelJS.Workbook;
   try {
     wb = await loadXlsx(data);
-  } catch {
-    return { ok: false, message: excelReadProblem(data) };
+  } catch (e) {
+    return { ok: false, message: e instanceof UnsafeWorkbookError ? e.message : excelReadProblem(data) };
   }
   const info = wb.getWorksheet(INFO_SHEET);
   const ws = wb.getWorksheet(SHEET);

@@ -15,8 +15,29 @@ const PREFIXED_NAMESPACES = [
  * 한셀은 `<x:worksheet>`, `<ep:Properties>`처럼 접두어를 붙여 저장하는데(같은 뜻의 올바른 XML),
  * exceljs는 접두어 없는 Excel 표기만 처리한다. 그래도 읽지 못하면 처음 오류를 던진다.
  */
+/** 압축 폭탄 차단: 풀었을 때 크기·항목 수 상한 (보안 점검 중간 4번) */
+export const MAX_XLSX_ENTRIES = 300;
+export const MAX_XLSX_ENTRY_BYTES = 20 * 1024 * 1024;
+export const MAX_XLSX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+/** 압축 폭탄 등 위험한 파일일 때 던지는 오류 (사용자에게 그대로 보여 줄 문장) */
+export class UnsafeWorkbookError extends Error {}
+
+/** 풀기 전에 zip 목차만 보고 항목 수와 풀린 크기를 확인한다. */
+async function assertSafeZip(bytes: Uint8Array): Promise<void> {
+  const zip = await JSZip.loadAsync(bytes).catch(() => null);
+  if (!zip) return; // zip이 아니면 아래 읽기에서 형식 오류로 처리
+  const entries = Object.values(zip.files);
+  const sizeOf = (f: JSZip.JSZipObject) => (f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0;
+  const total = entries.reduce((s, f) => s + sizeOf(f), 0);
+  if (entries.length > MAX_XLSX_ENTRIES || entries.some((f) => sizeOf(f) > MAX_XLSX_ENTRY_BYTES) || total > MAX_XLSX_TOTAL_BYTES) {
+    throw new UnsafeWorkbookError("파일을 풀면 크기가 너무 커서 읽지 않았습니다. 툴에서 내려받은 양식을 사용해 주세요.");
+  }
+}
+
 export async function loadXlsx(data: ArrayBuffer | Uint8Array): Promise<ExcelJS.Workbook> {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  await assertSafeZip(bytes);
   try {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(toArrayBuffer(bytes));

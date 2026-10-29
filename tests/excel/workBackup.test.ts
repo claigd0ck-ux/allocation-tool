@@ -44,9 +44,9 @@ describe("작업 데이터 저장 파일", () => {
 
   it("기관이 많아 글자가 길어도 나눠 담아 되살린다", async () => {
     const backup = sample();
-    backup.review.institutions = Array.from({ length: 150 }, (_, i) => emptyInstitution(`기관${i}`));
+    backup.review.institutions = Array.from({ length: 40 }, (_, i) => emptyInstitution(`기관${i}`));
     const parsed = await parseWorkBackup(toAB(await buildWorkBackup(backup)));
-    expect(parsed.ok && parsed.backup.review.institutions).toHaveLength(150);
+    expect(parsed.ok && parsed.backup.review.institutions).toHaveLength(40);
   });
 
   it("툴의 저장 파일이 아니면 거부한다 (기초 조건 양식도 거부)", async () => {

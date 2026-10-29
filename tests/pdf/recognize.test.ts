@@ -49,7 +49,7 @@ describe("PDF 인식 경로", () => {
 
   it("스캔본은 AI로 보내되 저장하지 않게(store: false) 하고, 숫자는 코드가 해석해 모두 노란색(확인 필요)으로 둔다", async () => {
     const { client, calls } = fakeClient(D_BANK);
-    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client });
+    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client, allowOcr: true });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ store: false, input: [{ content: [{ type: "input_file" }, { type: "input_text" }] }] });
     // 글자 추출을 먼저 했어도 AI에는 PDF 전체가 그대로 간다
@@ -70,13 +70,13 @@ describe("PDF 인식 경로", () => {
   });
 
   it("API 키가 없으면 스캔본은 직접 입력하라고 안내한다", async () => {
-    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client: null });
+    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client: null, allowOcr: true });
     expect(r).toMatchObject({ ok: false, method: "failed", message: expect.stringContaining("OPENAI_API_KEY") });
   });
 
   it("AI 요청이 실패해도 오류 없이 안내한다", async () => {
     const client: OcrClient = { responses: { create: async () => Promise.reject(new Error("네트워크")) } };
-    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client });
+    const r = await recognizePdf(pdf("D은행_스캔본.pdf"), "D은행_스캔본.pdf", { client, allowOcr: true });
     expect(r).toMatchObject({ ok: false, message: expect.stringContaining("AI 인식 요청에 실패") });
   });
 });

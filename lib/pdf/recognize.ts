@@ -14,23 +14,26 @@ export type Recognition =
 export async function recognizePdf(
   data: Uint8Array,
   fileName: string,
-  options: { allowOcrForTextPdf?: boolean; client?: OcrClient | null } = {},
+  options: { allowOcr?: boolean; client?: OcrClient | null } = {},
 ): Promise<Recognition> {
   const extracted = await extractPdfText(data);
   if (!extracted.ok) return { ok: false, method: "failed", canUseOcr: false, message: extracted.message };
 
+  // AI(OpenAI)로는 PDF 전체(담당자 이름 등 포함)가 전송되므로, 스캔본이든 아니든 파일마다 동의를 받은 뒤에만 보낸다
   const isScan = extracted.text.length === 0;
   if (!isScan) {
     const parsed = parseProposal(extracted.text);
     if (parsed.foundLabels > 0) return { ok: true, method: "text", institution: parsed.institution };
-    if (!options.allowOcrForTextPdf) {
-      return {
-        ok: false,
-        method: "failed",
-        canUseOcr: true,
-        message: "표준 양식의 항목을 찾지 못했습니다. ③에서 직접 입력하거나, 동의하면 AI로 읽을 수 있습니다 (자료가 외부로 전송됩니다).",
-      };
-    }
+  }
+  if (!options.allowOcr) {
+    return {
+      ok: false,
+      method: "failed",
+      canUseOcr: true,
+      message: isScan
+        ? "글자를 선택할 수 없는 스캔본입니다. 동의하면 PDF 전체를 AI(OpenAI)로 보내 읽습니다. 아니면 ③에서 직접 입력해 주세요."
+        : "표준 양식의 항목을 찾지 못했습니다. 동의하면 PDF 전체를 AI(OpenAI)로 보내 읽습니다. 아니면 ③에서 직접 입력해 주세요.",
+    };
   }
 
   const ocr = await ocrPdf(data, fileName, options.client);

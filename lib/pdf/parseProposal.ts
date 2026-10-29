@@ -88,6 +88,28 @@ export function parseProposal(text: string): ParsedProposal {
     }
   }
 
+  // 같은 항목이 두 번 이상 나오면(숨은 글자로 값 바꿔치기 등) 어느 값이 맞는지 모르므로 노란색으로 확인을 받는다
+  const seen = new Map<string, number>();
+  let section2 = "";
+  for (const { key } of tokens) {
+    if (key === "section1y" || key === "section3y") section2 = key;
+    const scoped = ["productName", "rate", "tiers"].includes(key) ? `${section2}:${key}` : key;
+    seen.set(scoped, (seen.get(scoped) ?? 0) + 1);
+  }
+  const dup = (k: string) => (seen.get(k) ?? 0) > 1;
+  const flag = <T>(f: Field<T>): Field<T> =>
+    f.status === "ok" ? { ...f, status: "uncertain", confirmed: false, note: "PDF에 같은 항목이 두 번 이상 있습니다. 원본과 대조해 확인해 주세요." } : f;
+  if (dup("name")) inst.name = flag(inst.name);
+  if (dup("score")) inst.score = flag(inst.score);
+  if (dup("existing")) inst.existing = flag(inst.existing);
+  if (dup("feeMethod")) inst.feeMethod = flag(inst.feeMethod);
+  inst.products.forEach((p, i) => {
+    const s = i === 0 ? "section1y" : "section3y";
+    if (dup(`${s}:productName`)) p.name = flag(p.name);
+    if (dup(`${s}:rate`)) p.rate = flag(p.rate);
+    if (dup(`${s}:tiers`)) p.tiers = p.tiers.map((t) => ({ from: flag(t.from), fee: flag(t.fee) }));
+  });
+
   return { institution: inst, foundLabels: tokens.filter((t) => t.key !== "contact").length };
 }
 

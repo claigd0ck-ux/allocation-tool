@@ -96,7 +96,7 @@ export default function Step2Upload({ state, update }: Props) {
         <input ref={inputRef} type="file" accept=".pdf,application/pdf" multiple className="hidden" aria-label="예치기관 제안서 PDF" onChange={(e) => onFiles(e.target.files)} />
       </div>
       <p className="rounded-md bg-zinc-100 px-4 py-2 text-zinc-700">
-        글자를 선택할 수 있는 PDF는 이 서버 안에서만 읽습니다. 글자가 없는 스캔본만 AI(OpenAI)로 보내 읽으며, 사람 이름·연락처는 읽지 않습니다.
+        글자를 선택할 수 있는 PDF는 이 서버 안에서만 읽습니다. 스캔본처럼 글자를 읽지 못한 PDF는 파일마다 동의를 받은 뒤에만 AI(OpenAI)로 보내며, 이때는 담당자 이름 등을 포함한 PDF 전체가 외부로 전송됩니다(결과에는 사람 이름·연락처를 넣지 않습니다).
       </p>
 
       <ul className="flex flex-col divide-y divide-zinc-100 rounded-md border border-zinc-200">
@@ -113,7 +113,7 @@ export default function Step2Upload({ state, update }: Props) {
           <li key={p.name} className="flex items-center gap-4 px-4 py-2">
             <span className="flex-1">{p.name}</span>
             {p.status === "reading" ? (
-              <span className="text-zinc-500">읽는 중… (스캔본이면 AI로 읽어 시간이 걸릴 수 있습니다)</span>
+              <span className="text-zinc-500">읽는 중… (AI로 읽는 경우 시간이 걸릴 수 있습니다)</span>
             ) : (
               <>
                 <span className="max-w-md text-xs text-amber-800">{p.message}</span>
@@ -121,7 +121,7 @@ export default function Step2Upload({ state, update }: Props) {
                   type="button"
                   className="rounded bg-amber-500 px-2 py-1 text-xs font-medium text-white"
                   onClick={() => {
-                    if (window.confirm(`${p.name}을(를) AI(OpenAI)로 보내 읽습니다. 자료가 외부로 전송됩니다. 동의하십니까?`)) void send(p.file, true);
+                    if (window.confirm(`${p.name}을(를) AI(OpenAI)로 보내 읽습니다. 담당자 이름 등을 포함한 PDF 전체가 외부로 전송됩니다. 동의하십니까?`)) void send(p.file, true);
                   }}
                 >
                   AI로 읽기 (동의)

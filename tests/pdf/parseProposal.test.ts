@@ -52,6 +52,14 @@ describe("표준 양식 제안서 읽기", () => {
     expect(JSON.stringify(i)).not.toContain("김담당");
   });
 
+  it("같은 항목이 두 번 나오면(숨은 글자 바꿔치기) 노란색으로 확인을 받는다", () => {
+    const { institution: i } = parseProposal("기관명: A은행 평가 점수: 80 평가 점수: 99 [1년물] 금리: 3.5% 금리: 9.9% [3년물] 금리: 3.9%");
+    expect(i.score).toMatchObject({ status: "uncertain", note: expect.stringContaining("두 번 이상") });
+    expect(i.products[0].rate.status).toBe("uncertain");
+    expect(i.products[1].rate.status).toBe("ok");
+    expect(i.name.status).toBe("ok");
+  });
+
   it("양식이 아닌 글자는 항목을 하나도 찾지 못한다", () => {
     expect(parseProposal("안녕하세요. 회의 자료입니다.").foundLabels).toBe(0);
   });

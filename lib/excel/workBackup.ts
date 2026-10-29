@@ -5,7 +5,8 @@ import ExcelJS from "exceljs";
 import type { ReviewState } from "@/lib/domain/review";
 import { emptyWorkState, type ConditionsDraft } from "@/lib/storage/workState";
 import { excelReadProblem } from "./fileKind";
-import { loadXlsx } from "./load";
+import { workBackupSchema } from "@/lib/validate/requestSchemas";
+import { loadXlsx, UnsafeWorkbookError } from "./load";
 
 export const BACKUP_MARK = "allocation-tool-work";
 export const BACKUP_VERSION = 1;
@@ -103,8 +104,8 @@ export async function parseWorkBackup(data: ArrayBuffer): Promise<BackupParse> {
   let wb: ExcelJS.Workbook;
   try {
     wb = await loadXlsx(data);
-  } catch {
-    return { ok: false, message: excelReadProblem(data) };
+  } catch (e) {
+    return { ok: false, message: e instanceof UnsafeWorkbookError ? e.message : excelReadProblem(data) };
   }
   const sheet = wb.getWorksheet(DATA_SHEET);
   if (!sheet || sheet.getCell("A1").value !== BACKUP_MARK) {
@@ -119,16 +120,15 @@ export async function parseWorkBackup(data: ArrayBuffer): Promise<BackupParse> {
     json += v;
   }
   try {
-    const parsed = JSON.parse(json) as Partial<WorkBackup>;
+    const raw = JSON.parse(json) as Partial<WorkBackup>;
     const base = emptyWorkState();
-    if (!parsed.conditions || !parsed.review || !Array.isArray(parsed.review.institutions)) throw new Error("형식");
-    return {
-      ok: true,
-      backup: {
-        conditions: { ...base.conditions, ...parsed.conditions },
-        review: { files: parsed.review.files ?? [], institutions: parsed.review.institutions },
-      },
-    };
+    // 값 자리에 객체(엑셀 수식·링크 등)가 들어오지 못하게 형식을 끝까지 검사한다
+    const checked = workBackupSchema.safeParse({
+      conditions: { ...base.conditions, ...raw.conditions },
+      review: { files: raw.review?.files ?? [], institutions: raw.review?.institutions },
+    });
+    if (!checked.success) throw new Error("형식");
+    return { ok: true, backup: checked.data };
   } catch {
     return { ok: false, message: "저장 파일의 내용이 손상되었습니다." };
   }

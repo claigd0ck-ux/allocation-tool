@@ -31,6 +31,26 @@ export async function readUpload(request: Request, field = "file"): Promise<{ ok
   return { ok: true, file };
 }
 
+/**
+ * JSON 요청 본문을 읽는다. content-length 헤더를 믿지 않고 실제로 읽은 크기로 제한한다(chunked 전송 대비).
+ */
+export async function readJsonBody(request: Request): Promise<{ ok: true; body: unknown } | { ok: false; message: string }> {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_UPLOAD_BYTES) return { ok: false, message: "요청이 너무 큽니다." };
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return { ok: false, message: "요청을 읽지 못했습니다." };
+  }
+  if (new TextEncoder().encode(raw).length > MAX_UPLOAD_BYTES) return { ok: false, message: "요청이 너무 큽니다." };
+  try {
+    return { ok: true, body: JSON.parse(raw) };
+  } catch {
+    return { ok: false, message: "요청 형식이 올바르지 않습니다." };
+  }
+}
+
 export function jsonError(message: string, status = 400): Response {
   return Response.json({ ok: false, message }, { status, headers: { "Cache-Control": "no-store" } });
 }
