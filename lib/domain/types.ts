@@ -71,6 +71,10 @@ export interface Field<T> {
   value: T | null;
   status: FieldStatus;
   confirmed: boolean;
+  /** 숫자로 바꿀 수 없는 글자를 입력했을 때 그 글자 (화면에 그대로 보여주고 빨갛게 표시) */
+  raw?: string;
+  /** 오류·불확실 이유 */
+  note?: string;
 }
 
 // ───────── 계산 결과 ─────────

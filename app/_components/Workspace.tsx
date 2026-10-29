@@ -9,6 +9,8 @@ import type { Step } from "@/lib/storage/workState";
 import { gateFor, STEPS, stepStatus } from "@/lib/workflow/steps";
 import ConditionsExcelButtons from "./ConditionsExcelButtons";
 import Step1Conditions from "./Step1Conditions";
+import Step2Upload from "./Step2Upload";
+import Step3Review from "./Step3Review";
 
 export default function Workspace() {
   const { state, update, reset } = useWorkState();
@@ -102,6 +104,10 @@ export default function Workspace() {
               showRequired={attempted}
               toolbar={<ConditionsExcelButtons update={update} />}
             />
+          ) : current === 2 ? (
+            <Step2Upload />
+          ) : current === 3 ? (
+            <Step3Review state={state} update={update} />
           ) : (
             <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
           )}
