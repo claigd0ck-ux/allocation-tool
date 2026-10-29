@@ -7,15 +7,19 @@ import { useState } from "react";
 import { useWorkState } from "@/lib/storage/useWorkState";
 import type { Step } from "@/lib/storage/workState";
 import { gateFor, STEPS, stepStatus } from "@/lib/workflow/steps";
+import Step1Conditions from "./Step1Conditions";
 
 export default function Workspace() {
   const { state, update, reset } = useWorkState();
   const [message, setMessage] = useState<string | null>(null);
+  // 다음 단계로 가려다 막힌 적이 있으면 빈칸도 빨갛게 표시한다
+  const [attempted, setAttempted] = useState(false);
 
   const goTo = (step: Step) => {
     const gate = gateFor(step, state);
     if (!gate.ok) {
       setMessage(gate.reason);
+      setAttempted(true);
       return;
     }
     setMessage(null);
@@ -25,6 +29,7 @@ export default function Workspace() {
   const onReset = () => {
     if (window.confirm("입력한 조건, 인식 결과, 계산 결과를 모두 지웁니다. 초기화할까요?")) {
       reset();
+      setAttempted(false);
       setMessage("초기화했습니다.");
     }
   };
@@ -89,7 +94,11 @@ export default function Workspace() {
           <h2 id="step-title" className="mb-4 text-xl font-semibold">
             {"①②③④⑤"[current - 1]} {STEPS[current - 1].label}
           </h2>
-          <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
+          {current === 1 ? (
+            <Step1Conditions state={state} update={update} showRequired={attempted} />
+          ) : (
+            <p className="text-zinc-500">이 단계 화면은 준비 중입니다.</p>
+          )}
         </section>
       </main>
 

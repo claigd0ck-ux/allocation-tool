@@ -2,6 +2,7 @@
 // Plan SC: 작업 10 (앱 기본 틀). 각 단계의 잠금 조건은 해당 작업(11·15·16)에서 채워 넣는다.
 
 import type { Step, WorkState } from "@/lib/storage/workState";
+import { checkConditions } from "@/lib/validate/conditions";
 
 export const STEPS: { step: Step; label: string }[] = [
   { step: 1, label: "기초 조건" },
@@ -17,8 +18,10 @@ export type StepGate = { ok: true } | { ok: false; reason: string };
 /** 단계별 진입 조건을 계산하는 함수 모음. 앞 단계 조건을 모두 통과해야 다음 단계에 들어간다. */
 export type GateRules = Partial<Record<Step, (state: WorkState) => StepGate>>;
 
-/** 기본 진입 조건: 계산 결과가 있어야 ④·⑤로 갈 수 있다. (①→②, ②→③ 조건은 작업 11·13에서 더한다) */
+/** 기본 진입 조건: 기초 조건이 올바라야 ②로, 계산 결과가 있어야 ④·⑤로 갈 수 있다. */
 export const defaultGateRules: GateRules = {
+  2: (s) =>
+    checkConditions(s.conditions).ok ? { ok: true } : { ok: false, reason: "① 기초 조건의 빨간 칸을 먼저 고쳐 주세요." },
   4: (s) => (s.result ? { ok: true } : { ok: false, reason: "③에서 [계산 실행]을 먼저 눌러 주세요." }),
   5: (s) => (s.result ? { ok: true } : { ok: false, reason: "계산 결과가 있어야 내려받을 수 있습니다." }),
 };
