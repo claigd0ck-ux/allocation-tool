@@ -110,7 +110,7 @@ export default function Workspace() {
               toolbar={<ConditionsExcelButtons update={update} />}
             />
           ) : current === 2 ? (
-            <Step2Upload />
+            <Step2Upload state={state} update={update} />
           ) : current === 3 ? (
             <Step3Review state={state} update={update} />
           ) : current === 4 ? (
